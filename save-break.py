@@ -1,6 +1,17 @@
 #%%  # научимся писать "предохранитель",
 # позволяющий не считать и не отображать потоки больше некоторого
 
+from math import*
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import quad
+import time
+
+# для построения "3D"-графиков:
+#%matplotlib qt
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+
 start=time.clock();  
 
 ro_l0_min=1; ro_l0_max=100; 
