@@ -109,15 +109,16 @@ list_of_styles=['--' , '.-', '-']
 
 start=time.clock();  
 
-ro_l0_min=1.9e-9; ro_l0_max=2.6e-9; 
-ro_l0_quant=20;
+ro_l0_min=2.2e-9; ro_l0_max=2.55e-9; 
+ro_l0_quant=16;
 ro_l0_range = np.linspace(ro_l0_min, ro_l0_max, ro_l0_quant) 
 
-ro_m0_min=-2.9e-9; ro_m0_max=-3.6e-9;
-ro_m0_quant=10;
+ro_m0_min=-3.2e-9; ro_m0_max=-3.55e-9;
+ro_m0_quant=16;
 ro_m0_range = np.linspace(ro_m0_min, ro_m0_max, ro_m0_quant)
 
-field_critical_negative=[];  avlength_qq=[];  flux_qq=[]; field_ground_qq=[];
+field_critical_negative=[];  avlength_qq=[];  flux_qq=[]; field_ground_qq=[]; 
+field_deriv_qq=[];  # будем писать ещё и производную поля в конце лавины
 
 
 field_critical_negative=[];
@@ -131,7 +132,7 @@ for j_ro_m0 in range(0,  len(ro_m0_range)):
     ro_of_layers[1]=ro_m0;
     ro_of_layers_Mirror[1]=-ro_m0;
     
-    avlength_qq.append([]);  flux_qq.append([]);   field_ground_qq.append([]); 
+    avlength_qq.append([]);  flux_qq.append([]);   field_ground_qq.append([]); field_deriv_qq.append([]);
     
     # чтобы слишком большие потоки не рассчитывались:
     whether_we_count_the_flux=1;    flux=1;
@@ -142,94 +143,115 @@ for j_ro_m0 in range(0,  len(ro_m0_range)):
         ro_of_layers_Mirror[0]=-ro_l0;
         
         avalanche_length=0; avalanche_indicator=0; field_derivative=0;
-        field_profile=[];
-    
-        j_z=0;    z = z_range[j_z];   avalanche_end =avalanche_start =0;
-        
-        field_ground_qq[j_ro_m0].append(Field_in_z_function(z, ro_of_layers, ro_of_layers_Mirror))
-        
-    
-        while (avalanche_indicator<2)and(j_z<len(z_range)):
-            z = z_range[j_z]
-            field_profile.append(Field_in_z_function(z, ro_of_layers, ro_of_layers_Mirror))
-       
-    # нашли поле в данной точке. Посмотрим, а не в лавине ли мы:
-             
-            if (field_profile[j_z] < field_critical_negative[j_z])and (avalanche_indicator<1):
-    #            avalanche_length+=1;   # длина лавины в единицах zstep
-                avalanche_indicator=1;   # равен нулю, если лавины ещё не было
-                
-                rightedge=z_range[j_z];   leftedge=z_range[j_z-1];
-                avalanche_start = (leftedge + rightedge)/2
- #               quantityofiterations = 8;
-            
-                for q_to_find_the_precise_av_start in range(0, quantityofiterations):
-                    
-                    z = avalanche_start;  
-                    field_current=(Field_in_z_function(z, ro_of_layers, ro_of_layers_Mirror));
-                    field_crit_negat_current = -2.76e5*0.87**((z+MountainHeight)/1000);
-                    
-                    if field_current > field_crit_negat_current : leftedge = avalanche_start
-                    else:   rightedge = avalanche_start
-                    avalanche_start = (leftedge + rightedge)/2
-
-             # мы сейчас в нижней точке лавины: найдём производную в её конце           
-                
-                field_left=Field_in_z_function(leftedge, ro_of_layers,ro_of_layers_Mirror);
-                field_right=Field_in_z_function(rightedge, ro_of_layers,ro_of_layers_Mirror);
-        
-                field_derivative=abs((field_right-field_left))/(rightedge-leftedge); 
-                    
-         # проверим, - а вдруг лавина только что кончилась?      
-            if (field_profile[j_z] > field_critical_negative[j_z])and (avalanche_indicator==1):           
-                avalanche_indicator=2;  # 1 в лавине, 2 - если уже прошла и пора сворачиваться
-                rightedge=z_range[j_z];   leftedge=z_range[j_z-1];
-                avalanche_end = (leftedge + rightedge)/2
-#                quantityofiterations = 8;
-            
-                for q_to_find_the_precise_av_start in range(0, quantityofiterations):
-                    
-                    z = avalanche_end;  
-                    field_current=(Field_in_z_function(z, ro_of_layers, ro_of_layers_Mirror));
-                    field_crit_negat_current = -2.76e5*0.87**((z+MountainHeight)/1000)
-                                                  
-                    if field_current < field_crit_negat_current : leftedge = avalanche_end
-                    else:   rightedge = avalanche_end                
-                    avalanche_end = (leftedge + rightedge)/2
-                    
-                avalanche_length = avalanche_end - avalanche_start; 
-            
-#                flux=exp( avalanche_length**2/2/7.3e6 * field_derivative ) 
- #               print ("I've just counted the flux value" )
-        
-            j_z+=1;
-            
+        field_profile=[];         
             
  #  это - нахождение потока без "предохранителя ужасной бомбардировки частицами"      
  #       flux=exp( avalanche_length**2/2/7.3e6 * field_derivative ) 
         
-        if (flux>1.0e60): 
+        if (flux>1.0e2): 
             whether_we_count_the_flux=0;
   
         
         if (whether_we_count_the_flux==1): 
+            
+            j_z=0;    z = z_range[j_z];   avalanche_end =avalanche_start =0;
+            
+            field_ground_qq[j_ro_m0].append(Field_in_z_function(z, ro_of_layers, ro_of_layers_Mirror))
+            
+            while (avalanche_indicator<2)and(j_z<len(z_range)):
+                z = z_range[j_z]
+                field_profile.append(Field_in_z_function(z, ro_of_layers, ro_of_layers_Mirror))
+           
+        # нашли поле в данной точке. Посмотрим, а не в лавине ли мы:
+                 
+                if (field_profile[j_z] < field_critical_negative[j_z])and (avalanche_indicator<1):
+        #            avalanche_length+=1;   # длина лавины в единицах zstep
+                    avalanche_indicator=1;   # равен нулю, если лавины ещё не было
+                    
+                    rightedge=z_range[j_z];   leftedge=z_range[j_z-1];
+                    avalanche_start = (leftedge + rightedge)/2
+     #               quantityofiterations = 8;
+                
+                    for q_to_find_the_precise_av_start in range(0, quantityofiterations):
+                        
+                        z = avalanche_start;  
+                        field_current=(Field_in_z_function(z, ro_of_layers, ro_of_layers_Mirror));
+                        field_crit_negat_current = -2.76e5*0.87**((z+MountainHeight)/1000);
+                        
+                        if field_current > field_crit_negat_current : leftedge = avalanche_start
+                        else:   rightedge = avalanche_start
+                        avalanche_start = (leftedge + rightedge)/2
+    
+                 # мы сейчас в нижней точке лавины: найдём производную в её конце           
+                    
+                    field_left=Field_in_z_function(leftedge, ro_of_layers,ro_of_layers_Mirror);
+                    field_right=Field_in_z_function(rightedge, ro_of_layers,ro_of_layers_Mirror);
+            
+                    field_derivative=abs((field_right-field_left))/(rightedge-leftedge); 
+                        
+             # проверим, - а вдруг лавина только что кончилась?      
+                if (field_profile[j_z] > field_critical_negative[j_z])and (avalanche_indicator==1):           
+                    avalanche_indicator=2;  # 1 в лавине, 2 - если уже прошла и пора сворачиваться
+                    rightedge=z_range[j_z];   leftedge=z_range[j_z-1];
+                    avalanche_end = (leftedge + rightedge)/2
+    #                quantityofiterations = 8;
+                
+                    for q_to_find_the_precise_av_start in range(0, quantityofiterations):
+                        
+                        z = avalanche_end;  
+                        field_current=(Field_in_z_function(z, ro_of_layers, ro_of_layers_Mirror));
+                        field_crit_negat_current = -2.76e5*0.87**((z+MountainHeight)/1000)
+                                                      
+                        if field_current < field_crit_negat_current : leftedge = avalanche_end
+                        else:   rightedge = avalanche_end                
+                        avalanche_end = (leftedge + rightedge)/2
+                        
+                    avalanche_length = avalanche_end - avalanche_start; 
+                    avlength_qq[j_ro_m0].append(avalanche_length);
+                
+    #                flux=exp( avalanche_length**2/2/7.3e6 * field_derivative ) 
+     #               print ("I've just counted the flux value" )
+            
+                j_z+=1;
+# будем строить каждый третитй профиль поля, чтобы убедиться в правдоподобности итоговых результатов                       
+            if ((j_ro_m0+1)%4==0)&((j_ro_l0+1)%4==0):
+                fig = plt.figure(figsize=(16,8)) 
+                z_small_range = np.arange(zmin, z_range[j_z-1]+zstep, zstep)    
+                field_critical_negative_small=[];
+                
+                for j_z in range(0,  len(z_small_range)):
+                    field_critical_negative_small.append(field_critical_negative[j_z])    
+                plt.title(r'${\rho}_{m0} = $'+str(ro_m0)+r'$; {\rho}_{l0} = $'+str(ro_l0)+r'$; field-der = $'+str(field_derivative), fontsize=16)    
+                plt.plot(z_small_range, field_profile, linewidth=3, label='field_profile')
+                plt.plot(z_small_range, field_critical_negative_small, linewidth=3, label='-critical')
+                plt.legend(fontsize=20,loc=1)
+                plt.show()
+            
             flux=exp( avalanche_length**2/2/7.3e6 * field_derivative )    
             flux_qq[j_ro_m0].append(flux);
+            field_deriv_qq[j_ro_m0].append(field_derivative);
         else:
             flux_qq[j_ro_m0].append(1);
+            avlength_qq[j_ro_m0].append(1);
+            field_ground_qq[j_ro_m0].append(1);
+            field_deriv_qq[j_ro_m0].append(1);
  
- 
-#        print ("I've just counted the flux value" )
-        
-       
-        avlength_qq[j_ro_m0].append(avalanche_length)
-        print ("length of avalanche = " + str(avalanche_length) + ' m')
-        print ("flux = " + str(flux) + ' 1/s')
+#        print ("I've just counted the flux value" )    
+#        print ("length of avalanche = " + str(avalanche_length) + ' m')
+#        print ("flux = " + str(flux) + ' 1/s')
     
 fig = plt.figure(figsize=(8,6)) 
 picture1=plt.contourf(ro_l0_range, ro_m0_range, avlength_qq, 12, cmap='jet')
 plt.colorbar(picture1) 
 plt.title('Avalanche length', fontsize=22)
+plt.xlabel(r'${\rho}_{l0}$', fontsize=20, horizontalalignment='right' )
+plt.ylabel(r'${\rho}_{m0}$', rotation='horizontal', fontsize=20, horizontalalignment='right', verticalalignment='top')
+plt.axis('image')
+
+fig = plt.figure(figsize=(8,6)) 
+picture2=plt.contourf(ro_l0_range, ro_m0_range, field_deriv_qq, 12, cmap='jet')
+plt.colorbar(picture2) 
+plt.title('Field derivative', fontsize=22)
 plt.xlabel(r'${\rho}_{l0}$', fontsize=20, horizontalalignment='right' )
 plt.ylabel(r'${\rho}_{m0}$', rotation='horizontal', fontsize=20, horizontalalignment='right', verticalalignment='top')
 plt.axis('image')
@@ -253,18 +275,73 @@ plt.axis('image')
 elapsed=time.clock() - start
 print(elapsed)  
                     
+#%% построим зависимость производной поля от ro_l0 при максимальном ro_m0 из диапазона
+
+plt.title(r'${\rho}_{m0} = $'+str(ro_m0) + r'$; field_der ({\rho}_{l0}) $', fontsize=16)    
+plt.plot(ro_l0_range, field_deriv_qq[-1], linewidth=3)
+plt.xlabel(r'${\rho}_{m0}$', fontsize=20, horizontalalignment='right' )
+plt.ylabel(r'$field deriv$', rotation='horizontal', fontsize=20, horizontalalignment='right', verticalalignment='top')
+plt.show()
+
+
+
+#%% попробуем заливать каждый интервал своим цветом БЕЗ РАЗМЫТИЙ НА ГРАНИЦАХ
+# для длины лавины и производной поля - границы диапазонов в levels не подобраны !!!
+'''
+fig = plt.figure(figsize=(8,6)) 
+levels = [1, 1.1, 1.2, 1.3, 1.7]
+picture1=plt.contourf(ro_l0_range, ro_m0_range, avlength_qq, levels, colors=('r', 'y','g', 'b'))
+picture1.cmap.set_under('orange')
+picture1.cmap.set_over('cyan')
+plt.colorbar(picture1) 
+plt.title('Avalanche length', fontsize=22)
+plt.xlabel(r'${\rho}_{l0}$', fontsize=20, horizontalalignment='right' )
+plt.ylabel(r'${\rho}_{m0}$', rotation='horizontal', fontsize=20, horizontalalignment='right', verticalalignment='top')
+plt.axis('image')
+
+fig = plt.figure(figsize=(8,6)) 
+levels = [1, 1.1, 1.2, 1.3, 1.7]
+picture1=plt.contourf(ro_l0_range, ro_m0_range, field_deriv_qq, levels, colors=('r', 'y','g', 'b'))
+picture1.cmap.set_under('orange')
+picture1.cmap.set_over('cyan')
+plt.colorbar(picture1) 
+plt.title('Field derivative', fontsize=22)
+plt.xlabel(r'${\rho}_{l0}$', fontsize=20, horizontalalignment='right' )
+plt.ylabel(r'${\rho}_{m0}$', rotation='horizontal', fontsize=20, horizontalalignment='right', verticalalignment='top')
+plt.axis('image')   '''
+
+fig = plt.figure(figsize=(8,6)) 
+levels = [1, 1.1, 1.2, 1.3, 1.7]
+picture1=plt.contourf(ro_l0_range, ro_m0_range, flux_qq, levels, colors=('r', 'y','g', 'b'))
+picture1.cmap.set_under('orange')
+picture1.cmap.set_over('cyan')
+plt.colorbar(picture1) 
+plt.title('Particles flux', fontsize=22)
+plt.xlabel(r'${\rho}_{l0}$', fontsize=20, horizontalalignment='right' )
+plt.ylabel(r'${\rho}_{m0}$', rotation='horizontal', fontsize=20, horizontalalignment='right', verticalalignment='top')
+plt.axis('image')
+
+
+
+# of colors.
+
+# Our data range extends outside the range of levels; make
+# data below the lowest contour level yellow, and above the
+# highest level cyan:
+
+
 #%% вывод посчитанных выше картинок с заливкой только интересующего диапазона
 # ОПРЕДЕЛИТЬ И ПОДСТАВИТЬ MAX, MIN VALUE - ПО ПРЕДЫДУЩЕМУ
 
-quantity_of_parts=10; minimum_value=35;  maximum_value=105;
+quantity_of_parts=10; minimum_value=0;  maximum_value=1000;
 #size_of_part=maximum_value/quantity_of_parts;
 value_bounds = np.linspace(minimum_value, maximum_value, quantity_of_parts+1);
 
-#cpool=[];
-#for i in range(quantity_of_parts):
-#    cpool.append('white');
-#cpool[-2]='green';   
-cpool = ['red','orange','yellow','green','cyan', 'blue', 'violet', 'grey', 'black', 'red' ]
+cpool=[];
+for i in range(quantity_of_parts):
+    cpool.append('white');
+cpool[-2]='green';   
+#cpool = ['red','orange','yellow','green','cyan', 'blue', 'violet', 'grey', 'black', 'red' ]
  
 fig = plt.figure(figsize=(30,4)) 
 #fig = plt.figure(1,(14,4))
@@ -296,7 +373,7 @@ cbar = fig.colorbar(cs)
 
 #%%  for field
 
-quantity_of_parts=16; minimum_value=38000;  maximum_value=45000;
+quantity_of_parts=10; minimum_value=30000;  maximum_value=55000;
 #size_of_part=maximum_value/quantity_of_parts;
 value_bounds = np.linspace(minimum_value, maximum_value, quantity_of_parts+1);
 

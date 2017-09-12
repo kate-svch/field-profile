@@ -7,7 +7,7 @@ import time
 # для построения "3D"-графиков:
 #%matplotlib qt
 import matplotlib as mpl
-from mpl_toolkits.mplot3d import Axes3D
+#from mpl_toolkits.mplot3d import Axes3D
 
 #%%   # инициализация констант
 epsilon0 = 8.85*10**(-12);  zLimit = 1000;
@@ -273,21 +273,21 @@ print(elapsed)
 #%% вывод посчитанных выше картинок с заливкой только интересующего диапазона
 # ОПРЕДЕЛИТЬ И ПОДСТАВИТЬ MAX, MIN VALUE - ПО ПРЕДЫДУЩЕМУ
 
-quantity_of_parts=10; minimum_value=35;  maximum_value=105;
+quantity_of_parts=10; minimum_value=0;  maximum_value=1200;
 #size_of_part=maximum_value/quantity_of_parts;
 value_bounds = np.linspace(minimum_value, maximum_value, quantity_of_parts+1);
 
-#cpool=[];
-#for i in range(quantity_of_parts):
-#    cpool.append('white');
-#cpool[-2]='green';   
-cpool = ['red','orange','yellow','green','cyan', 'blue', 'violet', 'grey', 'black', 'red' ]
+cpool=[];
+for i in range(quantity_of_parts):
+    cpool.append('white');
+cpool[-2]='green';   
+#cpool = ['red','orange','yellow','green','cyan', 'blue', 'violet', 'grey', 'black', 'red' ]
  
 fig = plt.figure(figsize=(30,4)) 
 #fig = plt.figure(1,(14,4))
 ax = fig.add_subplot(131)    # ШАГ РЕГУЛЯРНЫЙ!! (в следующей строке)
 # зачем 'indexed', неясно
-cmap = mpl.colors.ListedColormap(cpool, 'indexed') # Задаём дискретную шкалу цветов из списка cpool
+cmap = mpl.colors.ListedColormap(cpool) # Задаём дискретную шкалу цветов из списка cpool
 cs = ax.pcolor(ro_l0_range, ro_m0_range, avlength_qq, cmap=cmap) # вызываем метод pcolor. Вводим пользовательскую раскраску через cmap
 #cbar = fig.colorbar(cs, ticks=value_bounds) # рисуем шкалу colorbar для изображения cs. В качестве черточек шкалы указываем bounds. 
 cbar = fig.colorbar(cs)
