@@ -16,7 +16,7 @@ ql=11; qm=-60; qu=40;
 sigma_l=700; sigma_m=550; sigma_u=600;
 Rl=1800; Rm=3000; Ru=4000;
 
-ro_l0=2.6*10**(-9); ro_m0=-3.3*10**(-9); ro_u0=0.7*10**(-9); 
+ro_l0=2.6*10**(-9); ro_m0=-3.3*10**(-9); ro_u0=0.7e-9;
 ro_of_layers=[ ro_l0, ro_m0, ro_u0] 
 ro_of_layers_Mirror=[ -ro_l0, -ro_m0, -ro_u0];    
 sigma_of_layers=[ sigma_l, sigma_m, sigma_u]   
@@ -110,11 +110,11 @@ list_of_styles=['--' , '.-', '-']
 start=time.clock();  
 
 ro_l0_min=2.2e-9; ro_l0_max=2.55e-9; 
-ro_l0_quant=16;
+ro_l0_quant=10;
 ro_l0_range = np.linspace(ro_l0_min, ro_l0_max, ro_l0_quant) 
 
-ro_m0_min=-3.2e-9; ro_m0_max=-3.55e-9;
-ro_m0_quant=16;
+ro_m0_min=-3.55e-9; ro_m0_max=-3.55e-9;
+ro_m0_quant=10;
 ro_m0_range = np.linspace(ro_m0_min, ro_m0_max, ro_m0_quant)
 
 field_critical_negative=[];  avlength_qq=[];  flux_qq=[]; field_ground_qq=[]; 
@@ -213,19 +213,25 @@ for j_ro_m0 in range(0,  len(ro_m0_range)):
      #               print ("I've just counted the flux value" )
             
                 j_z+=1;
-# будем строить каждый третитй профиль поля, чтобы убедиться в правдоподобности итоговых результатов                       
-            if ((j_ro_m0+1)%4==0)&((j_ro_l0+1)%4==0):
+
+# будем строить каждый третий профиль поля, чтобы убедиться в правдоподобности итоговых результатов                       
+            if ((j_ro_m0)%4==0)&((j_ro_l0+1)%4==0):
                 fig = plt.figure(figsize=(16,8)) 
-                z_small_range = np.arange(zmin, z_range[j_z-1]+zstep, zstep)    
-                field_critical_negative_small=[];
+#                z_small_range = np.arange(zmin, z_range[j_z-1]+zstep, zstep)    
+
+                field_critical_negative_small=[]; z_small_range=[];
                 
-                for j_z in range(0,  len(z_small_range)):
-                    field_critical_negative_small.append(field_critical_negative[j_z])    
+ #               for j_z in range(0,  len(z_small_range)):
+                field_profile_small=[];
+                for j_z in range(120,  170):
+                    z_small_range.append(z_range[j_z]);
+                    field_critical_negative_small.append(field_critical_negative[j_z])   
+                    field_profile_small.append(field_profile[j_z]) 
                 plt.title(r'${\rho}_{m0} = $'+str(ro_m0)+r'$; {\rho}_{l0} = $'+str(ro_l0)+r'$; field-der = $'+str(field_derivative), fontsize=16)    
-                plt.plot(z_small_range, field_profile, linewidth=3, label='field_profile')
+                plt.plot(z_small_range, field_profile_small, linewidth=3, label='field_profile')
                 plt.plot(z_small_range, field_critical_negative_small, linewidth=3, label='-critical')
                 plt.legend(fontsize=20,loc=1)
-                plt.show()
+                plt.show()  
             
             flux=exp( avalanche_length**2/2/7.3e6 * field_derivative )    
             flux_qq[j_ro_m0].append(flux);
